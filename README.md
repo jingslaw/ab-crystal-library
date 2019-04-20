@@ -55,3 +55,11 @@ This method can help you install the tess successfully in WINDOWS system. If it 
 Cpython:
 
 pip: pip install Cpython.
+
+#############################################
+
+USAGE
+
+Just use cmd and input:
+
+python gui.py
