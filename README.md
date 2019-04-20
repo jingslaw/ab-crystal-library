@@ -63,3 +63,5 @@ USAGE
 Just use cmd and input:
 
 python gui.py
+
+Then you can use this library！
