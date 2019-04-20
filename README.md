@@ -1,10 +1,13 @@
 # ab-crystal-library
 #############################################
+
 INTRODUCTION
+
 An offline crystal library, which includes about tens of thousand structure calculated by VASP, is provided. You can search the crystal in a friendly GUI page. The library will provide basic structure information such like space group, and basic electronic properties such like band gap calculated by VASP. When you are intrested to specific crystals, you can download their well-done VASP calculation files: INCAR, POSCAR, KPOINTS.
 In addition, this library provides a useful single-point doping program. When you choose a crystal as substrate, this program can find the most likely doping sites and give the structure(POSCAR), all of this candicates are found according to their geometric charecteristic. The algorithm detail of this program can be found in *Computational Material Science 130(2017)1-9*.
 
 #############################################
+
 INSTALL
 
 Many external library are needed for this library. And few of them maybe a little bit hard to install.
