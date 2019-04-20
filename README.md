@@ -45,8 +45,11 @@ The website: https://pypi.org/project/tess/
 pip: pip install tess
 
 NOTE: tess can not be installed directly in WINDOWS system. So you need download "tess-master.zip" file, or you can find this zip file in ab-crystal-library/method/ folder. Decompress this zip, and use cmd to install it:
+
 Frist, find the location of setup.py of tess.
+
 Then, input the command: python setup.py install
+
 This method can help you install the tess successfully in WINDOWS system. If it still doesn't work, you need install Cpython, and do this process again.
 
 Cpython:
