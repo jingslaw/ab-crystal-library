@@ -13,21 +13,25 @@ INSTALL
 Many external library are needed for this library. And few of them maybe a little bit hard to install.
 
 Pyqt5:
+
 The website: https://pypi.org/project/PyQt5/#description
 
 pip: pip install PyQt5
 
 ase:
+
 The website: https://pypi.org/project/ase/
 
 pip: pip install ase
 
 spglib:
+
 The website: https://pypi.org/project/spglib/
 
 pip: pip install spglib
 
 matplotlib:
+
 The website: https://pypi.org/project/matplotlib/
 
 pip: pip install matplotlib
@@ -35,6 +39,7 @@ pip: pip install matplotlib
 NOTE: python version higher than 3.7 will cause a problem that you can not see the 3D plot of crytall structure, which is plotted by mmatplotlib. 
 
 tess:
+
 The website: https://pypi.org/project/tess/
 
 pip: pip install tess
@@ -45,4 +50,5 @@ Then, input the command: python setup.py install
 This method can help you install the tess successfully in WINDOWS system. If it still doesn't work, you need install Cpython, and do this process again.
 
 Cpython:
+
 pip: pip install Cpython.
