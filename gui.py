@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = 'jingslaw'
-__version__ = 1.0
+__version__ = 1.2
 
 import sys
 from PyQt5.QtWidgets import *
