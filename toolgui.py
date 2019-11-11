@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = 'jingslaw'
-__version__ = 1.0
+__version__ = 1.2
 
 import re
 import sys
@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import matplotlib
+
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -18,6 +19,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 import matplotlib.pyplot as plt
 from method.plot_crystal import draw_crystal_in_ax
 from method import supercell_donet
+from method import defects_int_donet
 
 
 def poscar_is_vasp5(path="POSCAR"):
@@ -137,6 +139,7 @@ class ToolPage(QWidget):
         supercell = SupercellPage(self.figure, self.canvas, self.path)
         substitution = SubstitutionPage(self.figure, self.canvas, self.path)
         interstitial = InterstitialPage(self.figure, self.canvas, self.path)
+
         method.addTab(supercell, 'Supercell')
         method.addTab(substitution, 'Substitution and Vacancy')
         method.addTab(interstitial, 'Interstitial')
@@ -180,6 +183,7 @@ class ToolPage(QWidget):
         self.path.save_path = path
         self.output_file.setText(path)
 
+
 ##########################################
 class SupercellThread(QThread):
     trigger = pyqtSignal()
@@ -188,11 +192,12 @@ class SupercellThread(QThread):
         self.open_path = args[0]
         self.write_path = args[1]
         self.num = args[2]
-        self.tolerance = args[3]
+        self.start_tag = args[3]
+        self.stop_tag = args[4]
         super(SupercellThread, self).__init__()
 
     def run(self):
-        supercell_donet.exec(self.open_path, self.write_path, self.num, self.tolerance)
+        supercell_donet.exec(self.open_path, self.write_path, self.num, self.start_tag, self.stop_tag)
 
         self.trigger.emit()
 
@@ -203,15 +208,19 @@ class SupercellPage(QWidget):
         self.figure = args[0]
         self.canvas = args[1]
         self.path = args[2]
+
         self.write_path = 'CONTCAR'
         self.num = 10
-        self.tolerance = 1e-3
+        self.start = 1
+        self.stop = None
 
         self.factor_n = QLineEdit('10')
         self.factor_n.setFont(QFont('Arial'))
-        self.coefficient_ep = QLineEdit('1e-3')
-        self.coefficient_ep.setFont(QFont('Arial'))
-        self.output_filename = QLineEdit('CONTACR')
+        self.start_tag = QLineEdit('1')
+        self.start_tag.setFont(QFont('Arial'))
+        self.stop_tag = QLineEdit('None')
+        self.stop_tag.setFont(QFont('Arial'))
+        self.output_filename = QLineEdit('CONTCAR')
         self.output_filename.setFont(QFont('Arial'))
         self.bar = QProgressBar()
         self.bar.setRange(0, 100)
@@ -227,19 +236,18 @@ class SupercellPage(QWidget):
         ins_box = QGroupBox('Instruction')
         ins_box.setFont(QFont('Arial'))
         instruction = QTextEdit()
-        instruction.setPlainText('To expand the given primitive cell to the smallest supercell which as close to a '
-                                 'cubic as possible. The structure of primitive cell is from CONTCAR.relax.vasp by '
-                                 'default, or you can choose a POSCAR-modal vasp file as primitive cell from '
-                                 'local. Algorithm detail refers from *Phys. Rev. B 91, 165206* and an improvement for '
-                                 'the definition of deviation coefficient, where the epsilon is the difference between '
-                                 'sqrt(3) and the quotient of the longest body diagonal line and the shortest side '
-                                 'length of supercell.\n\n'
-                                 'The \'maximum multiple factor N\' restricts the largest size of supercell, which '
-                                 'should be smaller than N times of primitive cell.\n\n'
-                                 'The \'smallest deviation coefficient epsilon0\' judges the similarity between '
-                                 'supercell and cubic, when deviation coefficient of one supercell is smaller than '
-                                 'epsilon0, this supercell is considered to be a good cubic as output and stop the loop'
-                                 ' directly.\n')
+        instruction.setPlainText('To transform a non-cubic primitive to a supercell as close to cube as possible. '
+                                 'A geometric properties is used to judge whether a parallel hexahedron is close to a '
+                                 'cubic that, in given volume of parallel hexahedron, cubic has the smallest surface '
+                                 'area.\n\n'
+
+                                 'The \'maximum multiple factor N\' decides the loop time of calculation. The elements '
+                                 'in transform matrix are proportional to this parameter. The default value equals to '
+                                 'the largest multiply times of supercell extended by primitive cell. However, '
+                                 'sometimes this value causes considerable calculation, in this time, a small '
+                                 '\'maximum multiple factor N\'\n\n and a small extend range is a good choice.\n\n'
+                                 'The \'start\' and \'stop\' decide the range of expand times for supercell. If '
+                                 '\'stop\' is *None*, the default value equals to \'maximum multiple factor N\'\n')
         instruction.setReadOnly(True)
         instruction.setFont(QFont('Arial'))
         layout = QVBoxLayout()
@@ -250,7 +258,8 @@ class SupercellPage(QWidget):
         para_box.setFont(QFont('Arial'))
         para_layout = QFormLayout()
         para_layout.addRow('Maximum multiple factor N:', self.factor_n)
-        para_layout.addRow('Smallest deviation coefficient epsilon0:', self.coefficient_ep)
+        para_layout.addRow('Start:', self.start_tag)
+        para_layout.addRow('Stop:', self.stop_tag)
         para_layout.addRow('Name of output supercell:', self.output_filename)
         para_box.setLayout(para_layout)
 
@@ -294,10 +303,14 @@ class SupercellPage(QWidget):
             if platform.system() == 'Windows':
                 self.write_path = self.write_path.replace('\\', '/')
             self.num = int(self.factor_n.text())
-            self.tolerance = float(self.coefficient_ep.text())
+            self.start = int(self.start_tag.text())
+            if self.stop_tag.text() != 'None':
+                self.stop = int(self.stop_tag.text())
+            else:
+                self.stop = None
 
             self.timer.start(1000)
-            self.work_thread = SupercellThread(self.path.open_path, self.write_path, self.num, self.tolerance)
+            self.work_thread = SupercellThread(self.path.open_path, self.write_path, self.num, self.start, self.stop)
             self.work_thread.start()
             self.work_thread.trigger.connect(self.time_stop)
         else:
@@ -307,6 +320,9 @@ class SupercellPage(QWidget):
             self.status.setText('Ready')
             self.bar.setValue(0)
             self.timer.stop()
+
+            with open('interstitial log.txt', 'w') as file:
+                file.writelines('0%')
 
     def time_stop(self):
         from method import read
@@ -321,8 +337,11 @@ class SupercellPage(QWidget):
         draw_crystal_in_ax(ax, self.structure)
         self.canvas.draw()
 
+        with open('interstitial log.txt', 'w') as file:
+            file.writelines('0%')
+
     def time_count(self):
-        with open('log', 'r') as file:
+        with open('log.txt', 'r') as file:
             count = file.readline()
         n = count.split('%')[0]
         self.bar.setValue(int(n))
@@ -341,10 +360,8 @@ class SubstitutionPage(QWidget):
         self.subs.setFont(QFont('Arial'))
         self.center = QLineEdit('[0.5, 0.5, 0.5]')
         self.center.setFont(QFont('Arial'))
-        self.tolerance = QLineEdit('1e-3')
+        self.tolerance = QLineEdit('0.01')
         self.tolerance.setFont(QFont('Arial'))
-        self.symprec = QLineEdit('0.1')
-        self.symprec.setFont(QFont('Arial'))
 
         self.initUI()
 
@@ -362,9 +379,8 @@ class SubstitutionPage(QWidget):
                                  'The \'doped center\' will affect the position of substitution. In practically doping,'
                                  ' point-defect prefers to be made at the center of the host. Thus, it will choose the '
                                  'nearest position of center to make point-defect when center is *not* None.\n'
-                                 'The \'tolerance\' judges how close of two atoms to treat them as equivalent atoms\n'
-                                 'The \'symmetrical precision\' is the tolerance to give proper symmetrical operation '
-                                 'matrix for structure.\n\n'
+                                 'The \'tolerance\' judges how close of two atoms to treat them as equivalent atoms\n\n'
+
                                  'HINTS\n'
                                  'If you want to substitute more than one atomic specie in structure, you can input '
                                  'e.g. Si, Al. Please use \',\' to split them.\n'
@@ -377,9 +393,7 @@ class SubstitutionPage(QWidget):
                                  'want to make a point defect close to the center of host, please input [0.5, 0.5, 0.5]'
                                  '.\n'
                                  'The smaller of \'tolerance\' makes symmetrical requires harder, and thus gives more '
-                                 '*un-equivalent* sites, when structure keeps unchanged.\n'
-                                 'The smaller of \'symmetrical precision\' will give less allowable symmetrical '
-                                 'operations because of the more strict symmetrical requires.')
+                                 '*un-equivalent* sites, when structure keeps unchanged.\n')
         instruction.setReadOnly(True)
         instruction.setFont(QFont('Arial'))
         layout = QVBoxLayout()
@@ -393,7 +407,6 @@ class SubstitutionPage(QWidget):
         para_layout.addRow('Species of substitution:', self.subs)
         para_layout.addRow('Doped center:', self.center)
         para_layout.addRow('Tolerance:', self.tolerance)
-        para_layout.addRow('Symmetrical precision:', self.symprec)
         para_box.setLayout(para_layout)
 
         run_layout = QHBoxLayout()
@@ -431,14 +444,32 @@ class SubstitutionPage(QWidget):
             center = temp.split('[')[1].split(']')[0].split(',')
             center = [float(x) for x in center]
         tolerance = float(self.tolerance.text())
-        symprec = float(self.symprec.text())
         view_result = defects_sub_donet.exec(self.path.open_path, self.path.save_path,
-                                             types, subs, center, tolerance, symprec)
+                                             types, subs, center, tolerance)
 
         self.figure.clear()
         ax = self.figure.add_subplot(111, projection='3d')
         draw_crystal_in_ax(ax, view_result)
         self.canvas.draw()
+
+
+##########################################
+class InterstitialThread(QThread):
+    trigger = pyqtSignal()
+
+    def __init__(self, *args):
+        self.open_path = args[0]
+        self.write_path = args[1]
+        self.insert = args[2]
+        self.position = args[3]
+        self.center = args[4]
+        self.tolerance = args[5]
+        super(InterstitialThread, self).__init__()
+
+    def run(self):
+        self.view_structure = defects_int_donet.exec(self.open_path, self.write_path,
+                                                     self.insert, self.center, self.position, self.tolerance)
+        self.trigger.emit()
 
 
 class InterstitialPage(QWidget):
@@ -454,14 +485,16 @@ class InterstitialPage(QWidget):
         self.center.setFont(QFont('Arial'))
         self.position = QLineEdit('None')
         self.position.setFont(QFont('Arial'))
-        self.tolerance = QLineEdit('1.0')
+        self.tolerance = QLineEdit('0.01')
         self.tolerance.setFont(QFont('Arial'))
-        self.symprec = QLineEdit('0.1')
-        self.symprec.setFont(QFont('Arial'))
-        self.vnrprec = QLineEdit('0.1')
-        self.vnrprec.setFont(QFont('Arial'))
-        self.n_shell = QLineEdit('3')
-        self.n_shell.setFont(QFont('Arial'))
+
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 100)
+        self.bar.setValue(0)
+        self.status = QLabel('Ready.')
+        self.run_btn = QPushButton('Run')
+
+        self.timer = QTimer()
 
         self.initUI()
 
@@ -484,12 +517,7 @@ class InterstitialPage(QWidget):
                                  'Needed in two place:\n'
                                  '1. to find symmetrically inequivalent sites.\n'
                                  '2. to remove equivalent sites in candidate interstitial sites.\n'
-                                 'The \'symmetrical precision\' is the tolerance to give proper symmetrical operation '
-                                 'matrix for structure.\n'
-                                 'The \'vonoroi precision\' decides the number of neighbors for given symmetrical '
-                                 'inequivalent sites. This will impact the shape of vonoroi cell.\n'
-                                 'The \'number of shell\' decides how many shell of neighbors are considered for given '
-                                 'symmetrical inequivalent sites. This will also impact the shape of vonoroi cell.\n\n'
+
                                  'HINTS\n'
                                  'The \'insert element\' should be only one specie of atom, if you want to interstitial'
                                  ' different atoms, loop this program or replace element name in output POSCAR '
@@ -501,11 +529,7 @@ class InterstitialPage(QWidget):
                                  '*un-equivalent* sites when structure keeps unchanged. Meanwhile, the smaller '
                                  'tolerance will give more *un-equivalent* sites of candidate interstitial. Thus, if '
                                  'the result of candidate interstitial is too many, choose a bigger tolerance, e.g. '
-                                 'tolerance=2.0, is a good choice.\n'
-                                 'The smaller of \'symmetrical precision\' will give less allowable symmetrical '
-                                 'operations because of the more strict symmetrical requires.\n'
-                                 'The smaller of \'vonoroi precision\' will give fewer neighbors of each shell because '
-                                 'of the more strict distance requirement.\n'
+                                 'tolerance=0.1, is a good choice.\n'
                                  )
         instruction.setReadOnly(True)
         instruction.setFont(QFont('Arial', 10, 50))
@@ -520,58 +544,86 @@ class InterstitialPage(QWidget):
         para_layout.addRow('Doped center:', self.center)
         para_layout.addRow('Interstitial position:', self.position)
         para_layout.addRow('Tolerance:', self.tolerance)
-        para_layout.addRow('Symmetrical precision:', self.symprec)
-        para_layout.addRow('Vonoroi precision:', self.vnrprec)
-        para_layout.addRow('Number of shell:', self.n_shell)
         para_box.setLayout(para_layout)
 
         run_layout = QHBoxLayout()
-        run_btn = QPushButton('Run')
-        run_btn.setFont(QFont('Arial', 10, 50))
-        run_btn.clicked.connect(self.run_method)
+        self.run_btn.setFont(QFont('Arial', 10, 50))
+
+        self.run_btn.clicked.connect(self.run_method)
+        self.timer.timeout.connect(self.time_count)
+
+        progress_box = QGroupBox('status')
+        progress_box.setFont(QFont('Arial'))
+        progress = QGridLayout()
+        progress.addWidget(self.status, 0, 0)
+        progress.addWidget(self.bar, 0, 2, 1, 2)
+        progress_box.setLayout(progress)
+
         run_layout.addStretch(1)
-        run_layout.addWidget(run_btn)
+        run_layout.addWidget(self.run_btn)
         run_layout.addStretch(1)
 
         page = QVBoxLayout()
         page.addWidget(ins_box)
         page.addWidget(para_box)
+        page.addWidget(progress_box)
         page.addLayout(run_layout)
 
         self.setLayout(page)
 
     def run_method(self):
-        from method import defects_int_donet
+        source = self.sender()
+        if source.text() == 'Run':
+            source.setText('Reset')
+            self.status.setText('Calculating...')
+            self.bar.setValue(0)
+            insert = self.insert.text()
+            temp = self.center.text()
+            if re.match('None', temp):
+                center = None
+            else:
+                center = temp.split('[')[1].split(']')[0].split(',')
+                center = [float(x) for x in center]
+            temp = self.position.text()
+            if re.match('None', temp):
+                position = None
+            else:
+                position = temp.split('[')[1].split(']')[0].split(',')
+                position = [float(x) for x in position]
+            tolerance = float(self.tolerance.text())
 
-        insert = self.insert.text()
-        temp = self.center.text()
-        if re.match('None', temp):
-            center = None
+            self.timer.start(1000)
+            self.work_thread = InterstitialThread(self.path.open_path, self.path.save_path,
+                                                  insert, position, center, tolerance)
+            self.work_thread.start()
+            self.work_thread.trigger.connect(self.time_stop)
         else:
-            center = temp.split('[')[1].split(']')[0].split(',')
-            center = [float(x) for x in center]
-        temp = self.position.text()
-        if re.match('None', temp):
-            position = None
-        else:
-            position = temp.split('[')[1].split(']')[0].split(',')
-            position = [float(x) for x in position]
-        tolerance = float(self.tolerance.text())
-        symprec = float(self.symprec.text())
-        vnrprec = float(self.vnrprec.text())
-        n_shell = int(self.n_shell.text())
-        view_result = defects_int_donet.exec(self.path.open_path, self.path.save_path, insert, center,
-                                             position, tolerance, symprec, vnrprec, n_shell)
+            source.setText('Run')
+            self.work_thread.terminate()
+            self.work_thread.wait()
+            self.status.setText('Ready')
+            self.bar.setValue(0)
+            self.timer.stop()
+
+            with open('interstitial log.txt', 'w') as file:
+                file.writelines('0%')
+
+    def time_stop(self):
+        self.bar.setValue(100)
+        self.timer.stop()
+        self.status.setText('Finished.')
+        self.run_btn.setText('Run')
 
         self.figure.clear()
         ax = self.figure.add_subplot(111, projection='3d')
-        draw_crystal_in_ax(ax, view_result)
+        draw_crystal_in_ax(ax, self.work_thread.view_structure)
         self.canvas.draw()
 
+        with open('interstitial log.txt', 'w') as file:
+            file.writelines('0%')
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    text = 'F & Alkaline Earths'
-    ex = ToolPage()
-    sys.exit(app.exec_())
-
+    def time_count(self):
+        with open('interstitial log.txt', 'r') as file:
+            count = file.readline()
+        n = count.split('%')[0]
+        self.bar.setValue(int(n))
