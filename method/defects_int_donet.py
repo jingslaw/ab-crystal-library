@@ -3,7 +3,7 @@ import re
 import sys
 from method import read
 from method.write import poscar
-from .defect import interstitial
+from method.defect import interstitial
 
 
 def poscar_is_vasp5(path="POSCAR"):
@@ -44,15 +44,17 @@ def poscar_is_vasp5(path="POSCAR"):
         return species
 
 
-def exec(inputPath, outputPath, insert, center, position, tolerance, symprec, vnrprec, n_shell):
+def exec(inputPath, outputPath, insert, center, position, tolerance):
     import platform
+
     structure = read.poscar(inputPath, types=poscar_is_vasp5(inputPath))
-    doped_result, view_result = interstitial(structure, insert, center, position, tolerance, symprec, vnrprec, n_shell)
+    doped_result, view_result = interstitial(structure, insert, position=position, center=center, tolerance=tolerance)
     for doped_structure in doped_result:
         output_name = os.path.join(outputPath, doped_structure.name)
         if platform.system() == 'Windows':
             output_name = output_name.replace('\\', '/')
         poscar(doped_structure, file_name=output_name, vasp5=True)
+    poscar(view_result, file_name='inequivalent interstitial sites.vasp', vasp5=True)
     return view_result
 
 
@@ -77,4 +79,4 @@ if __name__ == "__main__":
     vnrprec = float(sys.argv[8])
     n_shell = int(sys.argv[9])
 
-    exec(inputPath, outputPath, insert, center, position, tolerance, symprec, vnrprec, n_shell)
+    exec(inputPath, outputPath, insert, center, position, tolerance)

@@ -8,6 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 
 def plot_cube(ax, cube_definition):
@@ -53,7 +54,7 @@ def plot_cube(ax, cube_definition):
 
 def get_atom_detail(atom_name):
     elements = {
-        'H': (0.32, '#000000'), 'He': (0.31, '#D9FFFF'), 'Li': (1.23, '#CC80FF'), 'Be': (0.89, '#C2FF00'),
+        'H': (0.32, '#FFFFA0'), 'He': (0.31, '#D9FFFF'), 'Li': (1.23, '#CC80FF'), 'Be': (0.89, '#C2FF00'),
         'B': (0.82, '#FFB5B5'), 'C': (0.77, '#909090'), 'N': (0.74, '#3050F8'), 'O': (0.70, '#FF0D0D'),
         'F': (0.68, '#90E050'), 'Ne': (0.67, '#B3E3F5'), 'Na': (1.54, '#AB5CF2'), 'Mg': (1.36, '#8AFF00'),
         'Al': (1.18, '#BFA6A6'), 'Si': (1.11, '#F0C8A0'), 'P': (1.06, '#FF8000'), 'S': (1.02, '#FFFF30'),
@@ -80,13 +81,16 @@ def get_atom_detail(atom_name):
         'Bk': (1.00, '#8A4FE3'), 'Cf': (1.00, '#A136D4'), 'Es': (1.00, '#B31FD4'), 'Fm': (1.00, '#B31FBA'),
         'Md': (1.00, '#B30DA6'), 'No': (1.00, '#BD0D87'), 'Lr': (1.00, '#C70066'), 'Rf': (1.00, '#CC0059'),
         'Db': (1.00, '#D1004F'), 'Sg': (1.00, '#D90045'), 'Bh': (1.00, '#E00038'), 'Hs': (1.00, '#E6002E'),
-        'Mt': (1.00, '#EB0026'), 'others': (1.00, '#FF1493'),
+        'Mt': (1.00, '#EB0026'), 'others': (1.00, '#FF1493'), 'ins': (1.00, '#000000')
     }
     try:
         item = elements[atom_name]
     except KeyError:
-        item = elements['others']
-    atom_size = (item[0] * 10)**2
+        if re.search('ins', atom_name):
+            item = elements['ins']
+        else:
+            item = elements['others']
+    atom_size = item[0]
     atom_color = item[1]
     return atom_size, atom_color
 
@@ -115,7 +119,7 @@ def plot_atoms(ax, structure):
             ys.append(position[1])
             zs.append(position[2])
         size, color = get_atom_detail(s)
-        temp = ax.scatter(xs, ys, zs, s=size, c=color, marker='o', depthshade=False)
+        temp = ax.scatter(xs, ys, zs, s=(size*10)**2, c=color, marker='o', depthshade=False)
         scatter.append(temp)
     sub_scatter = (i for i in scatter)
     labels = (i for i in species)

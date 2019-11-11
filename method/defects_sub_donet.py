@@ -3,7 +3,7 @@ import re
 import sys
 from method import read
 from .write import poscar
-from .defect import substitution
+from method.defect import substitution
 
 
 def poscar_is_vasp5(path="POSCAR"):
@@ -44,10 +44,10 @@ def poscar_is_vasp5(path="POSCAR"):
         return species
 
 
-def exec(inputPath, outputPath, types, subs, center, tolerance, symprec):
+def exec(inputPath, outputPath, types, subs, center, tolerance):
     import platform
     structure = read.poscar(inputPath, types=poscar_is_vasp5(inputPath))
-    doped_result, view_result = substitution(structure, types, subs, center, tolerance, symprec)
+    doped_result, view_result = substitution(structure, types, subs, center, tolerance)
     for doped_structure in doped_result:
         output_name = os.path.join(outputPath, doped_structure.name)
         if platform.system() == 'Windows':

@@ -42,9 +42,9 @@ def poscar_is_vasp5(path="POSCAR"):
         return species
 
 
-def exec(inputPath, outputPath, num, tolerance):
+def exec(inputPath, outputPath, num, start, stop):
     structure = read.poscar(inputPath, types=poscar_is_vasp5(inputPath))
-    super_structure = build_supercell(structure, num, tolerance)
+    super_structure = build_supercell(structure, num=num, start=start, stop=stop)
     write.poscar(super_structure, file_name=outputPath, vasp5=True)
 
 
