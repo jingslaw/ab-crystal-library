@@ -225,7 +225,7 @@ def evaluate_interstitial_sites(structure, positions, insert, tolerance, radius=
     return result
 
 
-def interstitial(structure, insert, position=None, center=None, tolerance=0.01, tag='F', explicit=True):
+def interstitial(structure, insert, position=None, center=None, tolerance=0.01, tag='N', explicit=True):
 
     result = []
     if position is not None:
@@ -238,11 +238,16 @@ def interstitial(structure, insert, position=None, center=None, tolerance=0.01, 
     else:
         positions = get_interstitial_positions(structure, center, tolerance)
         positions = evaluate_interstitial_sites(structure, positions, insert, tolerance)
+        with open('interstitial output.txt', 'w+') as fp:
+            for pos in positions:
+                fp.writelines('{0}   {1}   \n{2}\n\n'.format(pos[0], pos[1],
+                                                             np.dot(pos[2], np.linalg.inv(structure.cell.T))))
         view_structure = structure.copy()
         for i, position in enumerate(positions, start=1):
-            if tag is 'F':
-                if position[0] > 1e-12:
-                    break
+            if tag is 'F' and position[0] > 1e-12:
+                break
+            if tag is 'N' and position[1] > 1e-12:
+                break
             doped_structure = structure.copy()
             doped_structure.add_atom(position[2], insert)
             doped_structure.name = 'interstitial_of_{0}_in_site{1}'.format(insert, i)

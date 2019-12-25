@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 __author__ = 'Weiguo Jing'
 
 
@@ -10,7 +10,7 @@ def deviation(cell):
 
     surface = 2*(norm(np.cross(cell[0], cell[1]))+norm(np.cross(cell[0], cell[2]))+norm(np.cross(cell[1], cell[2])))
     volume = abs(det(cell))
-    return surface * np.sqrt(surface / 6) / (6 * volume) - 1
+    return surface * pow(volume, -2/3) / 6 - 1
 
 
 def find_transform_matrix(structure, num=10, start=1, stop=None, tolerance=1e-5, fast_search=False):
