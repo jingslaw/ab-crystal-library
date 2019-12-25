@@ -139,10 +139,12 @@ class ToolPage(QWidget):
         supercell = SupercellPage(self.figure, self.canvas, self.path)
         substitution = SubstitutionPage(self.figure, self.canvas, self.path)
         interstitial = InterstitialPage(self.figure, self.canvas, self.path)
+        structure_compare = StructureComparePage(self.figure, self.canvas, self.path)
 
         method.addTab(supercell, 'Supercell')
         method.addTab(substitution, 'Substitution and Vacancy')
         method.addTab(interstitial, 'Interstitial')
+        method.addTab(structure_compare, 'Structure Compare')
         method.setFont(QFont('Arial', 10, 50))
 
         image_page = QVBoxLayout()
@@ -627,3 +629,131 @@ class InterstitialPage(QWidget):
             count = file.readline()
         n = count.split('%')[0]
         self.bar.setValue(int(n))
+
+
+class StructureComparePage(QWidget):
+    def __init__(self, *args):
+        super().__init__()
+        self.figure = args[0]
+        self.canvas = args[1]
+        self.path = args[2]
+
+        self.host = QLineEdit('POSCAR')
+        self.host.setFont(QFont('Arial'))
+        self.doped = QLineEdit('CONTCAR')
+        self.doped.setFont(QFont('Arial'))
+        self.tolerance = QLineEdit('1')
+        self.tolerance.setFont(QFont('Arial'))
+        self.percent = QLineEdit('10')
+        self.percent.setFont(QFont('Arial'))
+
+        self.initUI()
+
+    def initUI(self):
+        ins_box = QGroupBox('Instruction')
+        ins_box.setFont(QFont('Arial'))
+        instruction = QTextEdit()
+        instruction.setPlainText('To compare the structure different between host and doped relaxed structure, which '
+                                 'can directly know the influence of defects to host structure.\n\n'
+                                 'The \'Host structure\' and \'Doped structure\' are structures needed to be '
+                                 'compared.\n'
+                                 'The \'Tolerance\' decides how close two atoms are considered to be equal in host '
+                                 'structure and doped structure. When the atom can\'t find any equal atom, it will be '
+                                 'considered as point defect. The default value is 1 angstrom.\n'
+                                 'The \'Expand factor\' can expand the vector of displacement. '
+                                 'The default value is 10, which means the displacement is expanded 10 times in the 3D'
+                                 'picture.')
+        instruction.setReadOnly(True)
+        instruction.setFont(QFont('Arial'))
+        layout = QVBoxLayout()
+        layout.addWidget(instruction)
+        ins_box.setLayout(layout)
+
+        host_label = QLabel('Host structure:')
+        host_label.setFont(QFont('Arial'))
+        input_btn_host = QPushButton('View')
+        input_btn_host.setFont(QFont('Arial'))
+        doped_label = QLabel('Doped structure:')
+        doped_label.setFont(QFont('Arial'))
+        input_btn_doped = QPushButton('View')
+        input_btn_doped.setFont(QFont('Arial'))
+        tolerance_label = QLabel('Tolerance:')
+        tolerance_label.setFont(QFont('Arial'))
+        percent_label = QLabel('Expand factor:')
+        percent_label.setFont(QFont('Arial'))
+
+        input_btn_host.clicked.connect(self.readhost)
+        input_btn_doped.clicked.connect(self.readdoped)
+
+        para_box = QGroupBox('Parameters')
+        para_box.setFont(QFont('Arial'))
+        para_layout = QGridLayout()
+        para_layout.addWidget(host_label, 0, 0)
+        para_layout.addWidget(self.host, 0, 1)
+        para_layout.addWidget(input_btn_host, 0, 2)
+        para_layout.addWidget(doped_label, 1, 0)
+        para_layout.addWidget(self.doped, 1, 1)
+        para_layout.addWidget(input_btn_doped, 1, 2)
+        para_layout.addWidget(tolerance_label, 2, 0)
+        para_layout.addWidget(self.tolerance, 2, 1, 1, 2)
+        para_layout.addWidget(percent_label, 3, 0)
+        para_layout.addWidget(self.percent, 3, 1, 1, 2)
+        para_box.setLayout(para_layout)
+
+        run_layout = QHBoxLayout()
+        run_btn = QPushButton('Run')
+        run_btn.setFont(QFont('Arial', 10, 50))
+        run_btn.clicked.connect(self.run_method)
+        run_layout.addStretch(1)
+        run_layout.addWidget(run_btn)
+        run_layout.addStretch(1)
+
+        page = QVBoxLayout()
+        page.addWidget(ins_box)
+        page.addWidget(para_box)
+        page.addLayout(run_layout)
+
+        self.setLayout(page)
+
+    def run_method(self):
+        from method import structure_compare_donet
+        from method import read
+        from method.plot_crystal import plot_atoms
+
+        tolerance = float(self.tolerance.text())
+        percent = float(self.percent.text())
+        arrow_location, arrow = structure_compare_donet.exec(self.path.save_path,
+                                                             self.host.text(), self.doped.text(), tolerance, percent)
+
+        self.figure.clear()
+        ax = self.figure.add_subplot(111, projection='3d')
+        structure = read.poscar(self.host.text())
+        draw_crystal_in_ax(ax, structure)
+        structure = read.poscar(self.doped.text())
+        plot_atoms(ax, structure)
+        ax.quiver(arrow_location[0], arrow_location[1], arrow_location[2], arrow[0], arrow[1], arrow[2])
+        self.canvas.draw()
+
+    def readhost(self):
+        from method import read
+        file_name, file_type = QFileDialog.getOpenFileName(None, 'Open', './', 'All Files (*)')
+        self.path.open_path = file_name
+        self.host.setText(file_name)
+
+        self.figure.clear()
+        self.structure = read.poscar(self.path.open_path, types=poscar_is_vasp5(self.path.open_path))
+        ax = self.figure.add_subplot(111, projection='3d')
+        draw_crystal_in_ax(ax, self.structure)
+        self.canvas.draw()
+
+    def readdoped(self):
+        from method import read
+        file_name, file_type = QFileDialog.getOpenFileName(None, 'Open', './', 'All Files (*)')
+        self.path.open_path = file_name
+        self.doped.setText(file_name)
+
+        self.figure.clear()
+        self.structure = read.poscar(self.path.open_path, types=poscar_is_vasp5(self.path.open_path))
+        ax = self.figure.add_subplot(111, projection='3d')
+        draw_crystal_in_ax(ax, self.structure)
+        self.canvas.draw()
