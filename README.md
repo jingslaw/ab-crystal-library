@@ -72,3 +72,6 @@ Then you can use this library！
 UPDATE
 
 Some changes in cystal-doped tools, which makes user more easier to handle.
+
+2019-12-15
+A new method: visulable structure compare between host and doped structure has been added to this project. And this function can analyze the defect location and type by comparing the host and doped structure.
