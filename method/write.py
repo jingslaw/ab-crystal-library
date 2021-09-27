@@ -128,4 +128,8 @@ def specieset(structure):
         Especially usefull with VASP since we are sure what the list of species
         is always ordered the same way.
     """
-    return sorted({a.type for a in structure})
+
+    tmp = [a.type for a in structure]
+    species = sorted(set(tmp), key=tmp.index)
+    return species
+

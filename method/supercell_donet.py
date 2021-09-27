@@ -1,6 +1,6 @@
 import sys
-import read
-import write
+from method import read
+from method import write
 from .supercell import build_supercell
 
 

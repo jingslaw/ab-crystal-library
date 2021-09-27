@@ -1,7 +1,13 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 __author__ = 'Weiguo Jing'
+__version__ = '1.1'
+
+############
+# log
+# 1.1 fixed the bug that the atoms position in compared structure will be changed after the compare
+#############
 
 from method.atom import Atom
 import numpy as np
@@ -32,14 +38,14 @@ class Element(object):
         self.int = []
         self.sub = []
         if len(host_list) == 0:
-            self.int.extend(doped_list)
+            self.int.extend(doped_list.copy())
         elif len(doped_list) == 0:
-            self.vac.extend(host_list)
+            self.vac.extend(host_list.copy())
         else:
             used = []
-            for atom1 in host_list:
+            for atom1 in host_list.copy():
                 temp = [atom1, ]
-                for atom2 in doped_list:
+                for atom2 in doped_list.copy():
                     if are_periodic(atom1.pos, atom2.pos, cell, tolerance):
                         temp.append(atom2)
                         used.append(atom2)
@@ -66,7 +72,7 @@ class Element(object):
                         self.surface.append(temp)
                     else:
                         self.unchanged.append(temp)
-            for atom2 in doped_list:
+            for atom2 in doped_list.copy():
                 if atom2 not in used:
                     self.int.append(atom2)
 
@@ -95,11 +101,13 @@ def get_doped_type(host, doped, tolerance=1.0):
         result.append(element)
     for element in result:
         for temp in result:
-            for interstitial in element.int:
-                for vacancy in temp.vac:
+            for i in range(len(element.int)-1, -1, -1):
+                interstitial = element.int[i]
+                for j in range(len(temp.vac)-1, -1, -1):
+                    vacancy = temp.vac[j]
                     if are_periodic(interstitial.pos, vacancy.pos, host.cell.T, tolerance=tolerance):
-                        temp.vac.remove(vacancy)
                         element.int.remove(interstitial)
+                        temp.vac.remove(vacancy)
                         element.sub.append([interstitial, vacancy])
     return result
 
@@ -148,9 +156,11 @@ def compare_structure(host, doped, tolerance=1.0, compare_type='M'):
                 host_base.append(pair[0])
                 doped_base.append(pair[1])
         distance = mass_center_calculation(host_base) - mass_center_calculation(doped_base)
-        for atom in doped:
+        for atom in doped.copy():
             atom.pos = into_cell(atom.pos + distance, cell=doped.cell)
         doped_type = get_doped_type(host, doped, tolerance)
+    elif compare_type == 'Q':
+        pass
     return doped_type
 
 
@@ -221,4 +231,4 @@ def structure_compare(save_path, host, doped, tolerance=1.0, percent=10):
         arrow = np.dstack((arrow, vector))
     arrow_location = arrow_location[0]
     arrow = arrow[0] * percent
-    return arrow_location, arrow
+    return arrow_location, arrow, result

@@ -1,4 +1,4 @@
-import read
+from method import read
 from method.compare_structure import structure_compare
 
 
@@ -43,7 +43,7 @@ def poscar_is_vasp5(path="POSCAR"):
 def exec(outputPath, host_path, doped_path, tolerance, percent):
     host = read.poscar(host_path, types=poscar_is_vasp5(host_path))
     doped = read.poscar(doped_path, types=poscar_is_vasp5(doped_path))
-    arrow_location, arrow = structure_compare(outputPath, host, doped, tolerance, percent)
+    arrow_location, arrow, tmp_result = structure_compare(outputPath, host, doped, tolerance, percent)
     return arrow_location, arrow
 
 

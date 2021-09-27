@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 __author__ = 'Weiguo Jing'
@@ -132,7 +132,7 @@ def get_vonoroi_intersitial_sites(structure, index=0, symprec=0.01):
 def remove_equivalent_sites(structure, positions, ops, center, tolerance):
     from numpy import dot
     from numpy.linalg import norm, inv
-    from utilities import are_periodic_images
+    from method.utilities import are_periodic_images
 
     result = []
     for i in range(len(positions)):
