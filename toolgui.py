@@ -53,7 +53,7 @@ def poscar_is_vasp5(path="POSCAR"):
             flag = 0
             for i in range(n):
                 line = poscar.readline().split()
-                if flag is 0:
+                if flag == 0:
                     species.append(line[3])
                     flag = 1
         poscar.close()
@@ -346,7 +346,8 @@ class SupercellPage(QWidget):
         with open('log.txt', 'r') as file:
             count = file.readline()
         n = count.split('%')[0]
-        self.bar.setValue(int(n))
+        if n != '':
+            self.bar.setValue(int(n))
 
 
 class SubstitutionPage(QWidget):
@@ -661,7 +662,7 @@ class StructureComparePage(QWidget):
                                  'structure and doped structure. When the atom can\'t find any equal atom, it will be '
                                  'considered as point defect. The default value is 1 angstrom.\n'
                                  'The \'Expand factor\' can expand the vector of displacement. '
-                                 'The default value is 10, which means the displacement is expanded 10 times in the 3D'
+                                 'The default value is 10, which means the displacement is expanded 10 times in the 3D '
                                  'picture.')
         instruction.setReadOnly(True)
         instruction.setFont(QFont('Arial'))

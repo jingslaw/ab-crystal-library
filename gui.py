@@ -55,6 +55,8 @@ class MainPage(QWidget):
         self.n = QLineEdit('40')
         self.total = QLineEdit('1000')
         self.species = QLineEdit()
+        self.bandgap_min = QLineEdit()
+        self.bandgap_max = QLineEdit()
 
         self.initUI()
 
@@ -94,6 +96,11 @@ class MainPage(QWidget):
         extra_require.addStretch(1)
         extra_require.addWidget(QLabel('# of Species:'))
         extra_require.addWidget(self.species)
+        extra_require.addStretch(1)
+        extra_require.addWidget(QLabel('Band gap:'))
+        extra_require.addWidget(self.bandgap_min)
+        extra_require.addWidget(QLabel('-'))
+        extra_require.addWidget(self.bandgap_max)
         extra_require.addStretch(1)
         extra_require.setContentsMargins(20, 20, 20, 20)
         extra = QGroupBox('Advanced')
@@ -153,7 +160,7 @@ class MainPage(QWidget):
 
     def doSearch(self):
         text = self.searchline.text()
-        if text is '':
+        if text == '':
             QMessageBox.information(self, 'Warning', 'Search line can not be None!')
             return
         n = int(self.n.text())
@@ -162,7 +169,7 @@ class MainPage(QWidget):
             QMessageBox.information(self, 'Warning', 'Result per page should be smaller '
                                                      'than the number of total result!')
             return
-        if self.species.text() is '':
+        if self.species.text() == '':
             species = None
         else:
             species = int(self.species.text())
