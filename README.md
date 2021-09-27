@@ -16,7 +16,12 @@ Thanks!
 
 INSTALL
 
-Many external library are needed for this library. And few of them maybe a little bit hard to install. Pylada is the most important part in this program, however, it seems that this package could not install in WINDOWS system, so some needed methods from Pylada has been included in method folder.
+Many external library are needed for this library. And few of them maybe a little bit hard to install. *Pylada* is the most important part in this program, however, it seems that this package could not install in WINDOWS system, so some needed methods from Pylada has been included in method folder.
+
+Pylada (if you want to develop this program, this package might be needed):
+The website: https://github.com/pylada/pylada-light
+
+pip: pip install pylada
 
 Pyqt5:
 
@@ -58,9 +63,9 @@ Then, input the command: python setup.py install
 
 This method can help you install the tess successfully in WINDOWS system. If it still doesn't work, you need install Cpython, and do this process again.
 
-Cpython:
+Cython:
 
-pip: pip install Cpython.
+pip: pip install Cython.
 
 #############################################
 
@@ -83,3 +88,6 @@ A new method: visulable structure compare between host and doped structure has b
 
 2021-1-24
 several bugs are fixed in tools.
+
+2021-9-21
+Now this program can used in Python3.8 version.
